@@ -1,73 +1,68 @@
-# React + TypeScript + Vite
+# Browser BI Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Live app: https://baditaflorin.github.io/browser-bi-studio/
 
-Currently, two official plugins are available:
+Repository: https://github.com/baditaflorin/browser-bi-studio
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Browser BI Studio is a fully client-side dashboard studio for local data exploration with WASM analytics, charts, embeddings, and local AI helpers.
 
-## React Compiler
+## Why
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Tableau Creator costs corporate teams about $900/year per user. Browser BI Studio tests the opposite premise: most v1 dashboard work can run from a static GitHub Pages app with user-owned files, browser storage, DuckDB-WASM, Pyodide, Plotly, Observable Plot, sentence-transformer embeddings, and optional local LLM assistance.
 
-## Expanding the ESLint configuration
+## Quickstart
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm install
+make install-hooks
+make dev
+make build
+make smoke
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## What Works
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Load the sample sales dataset or import local CSV / Parquet data.
+- Query data in-browser with DuckDB-WASM.
+- Build dashboard tiles with Plotly charts and Observable Plot previews.
+- Persist local dashboard state in IndexedDB.
+- Use lazy AI helpers for semantic search, Polars profiling through Pyodide, and optional in-browser WebLLM suggestions.
+- See the app version and current `main` commit on the live page.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Architecture
+
+```mermaid
+C4Context
+  title Browser BI Studio Context
+  Person(analyst, "Analyst", "Builds dashboards from local files")
+  System_Boundary(pages, "GitHub Pages static site") {
+    Container(app, "React/Vite app", "TypeScript", "Dashboard builder and local state")
+    ContainerDb(storage, "IndexedDB / OPFS", "Browser APIs", "Datasets, dashboards, preferences")
+    Container(wasm, "WASM modules", "DuckDB, Pyodide", "SQL and Python analytics")
+  }
+  System_Ext(github, "GitHub", "Public repo, Pages hosting, latest commit API")
+  Rel(analyst, app, "Uses in browser")
+  Rel(app, storage, "Persists state locally")
+  Rel(app, wasm, "Lazy-loads analytics engines")
+  Rel(app, github, "Fetches public commit metadata")
 ```
+
+More architecture detail: docs/architecture.md
+
+ADRs: docs/adr/
+
+Deployment guide: docs/deploy.md
+
+Privacy notes: docs/privacy.md
+
+## GitHub Pages
+
+The production build is committed to `docs/` and served by GitHub Pages from the `main` branch.
+
+Live URL: https://baditaflorin.github.io/browser-bi-studio/
+
+## Security
+
+No secrets belong in this project. The frontend never stores API keys, tokens, passwords, private keys, or hidden server credentials. Local files stay in the browser unless the user exports them.
+
+Disclosure policy: SECURITY.md

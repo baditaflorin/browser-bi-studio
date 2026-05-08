@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | rg -q '^package-lock.json$'; then
+  npm install
+fi

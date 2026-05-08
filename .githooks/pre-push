@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+make test
+make build
+node scripts/validate-pages.mjs
+make smoke
