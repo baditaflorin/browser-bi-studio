@@ -1,0 +1,17 @@
+{
+  "name": "Browser BI Studio",
+  "short_name": "BI Studio",
+  "start_url": "/browser-bi-studio/",
+  "scope": "/browser-bi-studio/",
+  "display": "standalone",
+  "background_color": "#f6f7f3",
+  "theme_color": "#0f766e",
+  "description": "A fully client-side BI dashboard studio using WASM analytics, charts, embeddings, and local AI.",
+  "icons": [
+    {
+      "src": "/browser-bi-studio/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

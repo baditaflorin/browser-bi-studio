@@ -22,7 +22,7 @@ export default defineConfig({
   build: {
     outDir: 'docs',
     assetsDir: 'assets',
-    emptyOutDir: true,
+    emptyOutDir: false,
     rollupOptions: {
       output: {
         manualChunks(id) {
