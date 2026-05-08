@@ -22,6 +22,8 @@ make smoke
 
 ## What Works
 
+![Browser BI Studio dashboard screenshot](https://baditaflorin.github.io/browser-bi-studio/screenshot.png)
+
 - Load the sample sales dataset or import local CSV / Parquet data.
 - Query data in-browser with DuckDB-WASM.
 - Build dashboard tiles with Plotly charts and Observable Plot previews.

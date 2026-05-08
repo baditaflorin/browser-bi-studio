@@ -18,14 +18,15 @@ export async function fetchVersionMetadata(): Promise<VersionMetadata> {
     live.status === 'fulfilled'
       ? live.value
       : {
-          sha: buildValue.commit,
+          sha: undefined,
           html_url: `https://github.com/baditaflorin/browser-bi-studio/commit/${buildValue.commit}`,
         }
+  const fallbackCommit = buildValue.commit === 'live-main' ? 'main' : buildValue.commit
 
   return {
     version: buildValue.version,
     buildCommit: buildValue.commit,
-    liveCommit: liveValue.sha?.slice(0, 7) ?? buildValue.commit,
+    liveCommit: liveValue.sha?.slice(0, 7) ?? fallbackCommit,
     commitUrl:
       liveValue.html_url ??
       `https://github.com/baditaflorin/browser-bi-studio/commit/${buildValue.commit}`,
