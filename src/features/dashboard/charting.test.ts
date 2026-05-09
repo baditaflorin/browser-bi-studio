@@ -3,8 +3,26 @@ import { chartRows, defaultFieldSelection, recommendChart } from './charting'
 import type { ColumnProfile } from '../../types'
 
 const columns: ColumnProfile[] = [
-  { name: 'region', type: 'string', nullable: false, distinctCount: 2 },
-  { name: 'revenue', type: 'number', nullable: false, distinctCount: 10 },
+  {
+    name: 'region',
+    type: 'string',
+    nullable: false,
+    distinctCount: 2,
+    semanticRole: 'dimension',
+    confidence: 'high',
+    reasons: ['test fixture'],
+    anomalies: [],
+  },
+  {
+    name: 'revenue',
+    type: 'number',
+    nullable: false,
+    distinctCount: 10,
+    semanticRole: 'money',
+    confidence: 'high',
+    reasons: ['test fixture'],
+    anomalies: [],
+  },
 ]
 
 describe('charting', () => {

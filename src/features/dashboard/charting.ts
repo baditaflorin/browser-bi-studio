@@ -5,6 +5,17 @@ export function recommendChart(columns: ColumnProfile[]): ChartType {
   const measures = numericColumns(columns)
   const dimensions = dimensionColumns(columns)
 
+  if (
+    columns.some((column) => column.semanticRole === 'latitude') &&
+    columns.some((column) => column.semanticRole === 'longitude')
+  ) {
+    return 'scatter'
+  }
+
+  if (columns.some((column) => column.semanticRole === 'time') && measures.length > 0) {
+    return 'line'
+  }
+
   if (columns.length <= 3 && measures.length === 0) {
     return 'table'
   }
@@ -63,8 +74,21 @@ export function chartRows(tile: Pick<ChartTile, 'rows' | 'xField' | 'yField'>): 
 
 export function defaultFieldSelection(result?: QueryResult) {
   const columns = result?.columns ?? []
-  const firstDimension = dimensionColumns(columns)[0]?.name ?? columns[0]?.name ?? ''
-  const firstMeasure = numericColumns(columns)[0]?.name ?? ''
+  const longitude = columns.find((column) => column.semanticRole === 'longitude')?.name
+  const latitude = columns.find((column) => column.semanticRole === 'latitude')?.name
+  const firstTime = columns.find((column) => column.semanticRole === 'time')?.name
+  const firstDimension =
+    longitude ??
+    firstTime ??
+    columns.find((column) => ['dimension', 'status'].includes(column.semanticRole))?.name ??
+    dimensionColumns(columns)[0]?.name ??
+    columns[0]?.name ??
+    ''
+  const firstMeasure =
+    latitude ??
+    columns.find((column) => ['money', 'measure'].includes(column.semanticRole))?.name ??
+    numericColumns(columns)[0]?.name ??
+    ''
 
   return {
     xField: firstDimension,

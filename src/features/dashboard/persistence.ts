@@ -8,6 +8,7 @@ const dashboardSchema = z.object({
   queryText: z.string(),
   lastResult: z.unknown().optional(),
   tiles: z.array(z.unknown()),
+  activity: z.array(z.unknown()).optional(),
   savedAt: z.string().optional(),
 })
 

@@ -309,6 +309,20 @@ th {
   font-size: 12px;
 }
 
+.diagnosis-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.diagnosis-strip span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #eef4f1;
+  color: #30403d;
+  font-weight: 650;
+}
+
 .column-list {
   display: flex;
   max-height: 130px;
@@ -318,12 +332,37 @@ th {
 }
 
 .column-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   max-width: 100%;
   padding: 4px 7px;
   border-radius: 999px;
   background: #edf5f2;
   color: #22544e;
   overflow-wrap: anywhere;
+}
+
+.column-list small {
+  color: #64736f;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.issue-list {
+  display: grid;
+  gap: 6px;
+}
+
+.issue-list p {
+  padding: 7px 8px;
+  border-left: 3px solid #b45309;
+  border-radius: 6px;
+  background: #fff7ed;
+  color: #4a3422;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .chart-builder {
@@ -442,6 +481,35 @@ th {
   margin-top: auto;
 }
 
+.activity-log {
+  display: grid;
+  gap: 8px;
+}
+
+.activity-log p {
+  display: grid;
+  gap: 2px;
+  padding: 7px 0;
+  border-bottom: 1px solid #e2e8e4;
+  font-size: 12px;
+}
+
+.activity-log p:last-child {
+  border-bottom: 0;
+}
+
+.activity-log span {
+  color: #64736f;
+}
+
+.debug-panel pre {
+  max-height: 260px;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 11px;
+}
+
 .status-strip {
   flex-wrap: wrap;
   justify-content: space-between;
@@ -450,6 +518,12 @@ th {
   padding: 8px 14px;
   border-top: 1px solid #d6ded9;
   background: #eef4f1;
+}
+
+.status-strip button {
+  min-height: 28px;
+  padding: 0 9px;
+  font-size: 12px;
 }
 
 .status-strip strong,

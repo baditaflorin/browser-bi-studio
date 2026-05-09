@@ -5,6 +5,7 @@ import duckdbMvpWorker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.
 import type { AsyncDuckDB } from '@duckdb/duckdb-wasm'
 import type { DatasetKind, LoadedDataset, QueryResult } from '../../types'
 import { inferColumns, normalizeRow } from './schema'
+import { prepareFileForImport, prepareTabularText } from './ingest'
 
 let dbPromise: Promise<AsyncDuckDB> | undefined
 
@@ -37,14 +38,53 @@ async function createDuckDb() {
 }
 
 export async function loadCsvIntoDuckDb(name: string, csv: string): Promise<LoadedDataset> {
+  return loadTextIntoDuckDb(name, csv, 'csv')
+}
+
+export async function loadTextIntoDuckDb(
+  name: string,
+  text: string,
+  kind: DatasetKind = 'csv',
+): Promise<LoadedDataset> {
+  const prepared = prepareTabularText(name, text, kind === 'sample' ? 'sample' : 'csv')
   const db = await initializeDuckDb()
   const fileName = safeFileName(name || 'dataset.csv')
-  await db.registerFileText(fileName, csv)
+  await db.registerFileText(fileName, prepared.canonicalCsv)
   await runStatement(
     `CREATE OR REPLACE TABLE current_data AS SELECT * FROM read_csv_auto(${sqlString(fileName)}, HEADER = TRUE)`,
   )
 
-  return describeCurrentDataset(fileName, 'csv')
+  return {
+    id: prepared.diagnosis.sourceId,
+    name: fileName,
+    kind,
+    loadedAt: new Date().toISOString(),
+    rowCount: prepared.rows.length,
+    columns: prepared.columns,
+    previewRows: prepared.rows.slice(0, 100),
+    diagnosis: prepared.diagnosis,
+  }
+}
+
+export async function loadFileIntoDuckDb(file: File): Promise<LoadedDataset> {
+  const prepared = await prepareFileForImport(file)
+  const db = await initializeDuckDb()
+  const fileName = safeFileName(prepared.name || 'dataset.csv')
+  await db.registerFileText(fileName, prepared.canonicalCsv)
+  await runStatement(
+    `CREATE OR REPLACE TABLE current_data AS SELECT * FROM read_csv_auto(${sqlString(fileName)}, HEADER = TRUE)`,
+  )
+
+  return {
+    id: prepared.diagnosis.sourceId,
+    name: fileName,
+    kind: prepared.diagnosis.format === 'tsv' ? 'csv' : 'csv',
+    loadedAt: new Date().toISOString(),
+    rowCount: prepared.rows.length,
+    columns: prepared.columns,
+    previewRows: prepared.rows.slice(0, 100),
+    diagnosis: prepared.diagnosis,
+  }
 }
 
 export async function loadParquetIntoDuckDb(file: File): Promise<LoadedDataset> {
