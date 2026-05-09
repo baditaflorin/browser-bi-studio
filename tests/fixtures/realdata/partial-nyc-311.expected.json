@@ -1,0 +1,13 @@
+{
+  "outcome": "pass-with-warning",
+  "format": "csv",
+  "shape": "categorical-counts",
+  "requiredRoles": {
+    "created_date": "time",
+    "complaint_type": "dimension",
+    "borough": "dimension"
+  },
+  "chart": "bar",
+  "requiredIssueCodes": ["truncated_final_row"],
+  "maxIssues": 3
+}

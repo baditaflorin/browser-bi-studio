@@ -1,0 +1,13 @@
+{
+  "outcome": "pass",
+  "format": "csv",
+  "shape": "wide-year-panel",
+  "headerRowIndex": 2,
+  "requiredRoles": {
+    "Country Name": "dimension",
+    "2021": "measure"
+  },
+  "chart": "bar",
+  "queryContains": ["Country Name", "2021"],
+  "maxIssues": 2
+}

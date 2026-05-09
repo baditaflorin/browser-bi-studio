@@ -1,0 +1,4 @@
+unique_key,created_date,closed_date,agency,complaint_type,descriptor,incident_zip,borough,status,resolution_description
+62500001,2026-05-01T08:04:10.000,2026-05-02T10:23:00.000,NYPD,Noise - Residential,Loud Music/Party,10031,MANHATTAN,Closed,"The Police Department responded and took action."
+62500002,2026-05-01T08:12:22.000,,DSNY,Dirty Conditions,E3 Dirty Sidewalk,11216,BROOKLYN,Open,
+62500003,2026-05-01T08:18:41.000,2026-05-01T18:40:00.000,DOT,Street Condition,Pothole,11375,QUEENS,Closed,"The Department of Transportation inspected the condition."

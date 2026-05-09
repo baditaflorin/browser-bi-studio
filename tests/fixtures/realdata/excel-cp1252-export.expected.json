@@ -1,0 +1,15 @@
+{
+  "outcome": "pass",
+  "format": "csv",
+  "delimiter": ";",
+  "shape": "time-series",
+  "requiredRoles": {
+    "Customer ID": "id",
+    "Invoice Date": "time",
+    "Amount": "money",
+    "Notes": "text"
+  },
+  "chart": "line",
+  "queryContains": ["Invoice Date", "Amount"],
+  "maxIssues": 2
+}

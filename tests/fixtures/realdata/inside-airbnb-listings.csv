@@ -1,0 +1,4 @@
+id,name,host_id,neighbourhood,latitude,longitude,room_type,price,minimum_nights,number_of_reviews,last_review,reviews_per_month
+10006546,"Ribeira Charming Duplex",51399391,Santa Maria Maior,41.1413,-8.61308,Entire home/apt,"$2,500.00",2,178,2026-04-21,1.78
+10009999,"Sunny room near museum",51399392,Bonfim,41.1511,-8.59833,Private room,$85.00,1,23,2026-03-11,0.49
+10007777,"Studio with NBSP",51399393,Paranhos,41.1748,-8.60688,Entire home/apt,,3,0,,

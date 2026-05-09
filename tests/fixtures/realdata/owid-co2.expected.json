@@ -1,0 +1,14 @@
+{
+  "outcome": "pass",
+  "format": "csv",
+  "shape": "panel",
+  "requiredRoles": {
+    "country": "dimension",
+    "year": "time",
+    "co2": "measure",
+    "population": "measure"
+  },
+  "chart": "line",
+  "queryContains": ["year", "co2"],
+  "maxIssues": 1
+}

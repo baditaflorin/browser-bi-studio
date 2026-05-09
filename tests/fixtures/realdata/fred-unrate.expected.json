@@ -1,0 +1,12 @@
+{
+  "outcome": "pass",
+  "format": "csv",
+  "shape": "time-series",
+  "requiredRoles": {
+    "DATE": "time",
+    "UNRATE": "measure"
+  },
+  "chart": "line",
+  "queryContains": ["DATE", "UNRATE"],
+  "maxIssues": 1
+}

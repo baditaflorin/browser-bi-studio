@@ -1,0 +1,17 @@
+{
+  "cik": 320193,
+  "entityName": "Apple Inc.",
+  "facts": {
+    "us-gaap": {
+      "Revenues": {
+        "label": "Revenues",
+        "units": {
+          "USD": [
+            { "fy": 2023, "fp": "FY", "form": "10-K", "filed": "2023-11-03", "val": 383285000000 },
+            { "fy": 2024, "fp": "FY", "form": "10-K", "filed": "2024-11-01", "val": 391035000000 }
+          ]
+        }
+      }
+    }
+  }
+}

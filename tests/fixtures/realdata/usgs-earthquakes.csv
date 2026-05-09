@@ -1,0 +1,4 @@
+time,latitude,longitude,depth,mag,magType,nst,gap,dmin,rms,net,id,updated,place,type
+2026-05-08T09:19:13.123Z,35.705,-117.504,3.12,1.4,ml,22,71,0.042,0.11,ci,ci40123456,2026-05-08T09:21:40.040Z,"12 km S of Searles Valley, CA",earthquake
+2026-05-08T07:47:56.890Z,19.181,-155.462,31.81,2.7,md,34,132,0.025,0.18,hv,hv74511234,2026-05-08T08:01:12.120Z,"9 km ESE of Pahala, Hawaii",earthquake
+2026-05-07T22:01:05.001Z,61.487,-150.118,42.4,1.9,ml,18,94,0.09,0.19,ak,ak0265abcde,2026-05-07T22:15:20.550Z,"6 km W of Big Lake, Alaska",earthquake

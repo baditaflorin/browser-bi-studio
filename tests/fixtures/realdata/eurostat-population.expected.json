@@ -1,0 +1,12 @@
+{
+  "outcome": "pass",
+  "format": "tsv",
+  "shape": "wide-year-panel",
+  "requiredRoles": {
+    "freq,unit,age,sex,geo\\TIME_PERIOD": "dimension",
+    "2021": "measure"
+  },
+  "chart": "bar",
+  "queryContains": ["2021"],
+  "maxIssues": 2
+}

@@ -1,0 +1,7 @@
+{
+  "outcome": "recoverable-error",
+  "format": "json",
+  "shape": "nested-json",
+  "errorCode": "unsupported_nested_json",
+  "nextStepIncludes": "flatten"
+}

@@ -1,0 +1,16 @@
+{
+  "outcome": "pass",
+  "format": "csv",
+  "shape": "geospatial",
+  "requiredRoles": {
+    "id": "id",
+    "price": "money",
+    "neighbourhood": "dimension",
+    "latitude": "latitude",
+    "longitude": "longitude",
+    "last_review": "time"
+  },
+  "chart": "scatter",
+  "queryContains": ["latitude", "longitude", "price"],
+  "maxIssues": 3
+}

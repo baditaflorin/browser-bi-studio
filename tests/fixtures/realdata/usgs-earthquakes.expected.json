@@ -1,0 +1,14 @@
+{
+  "outcome": "pass",
+  "format": "csv",
+  "shape": "geospatial",
+  "requiredRoles": {
+    "time": "time",
+    "latitude": "latitude",
+    "longitude": "longitude",
+    "mag": "measure"
+  },
+  "chart": "scatter",
+  "queryContains": ["latitude", "longitude", "mag"],
+  "maxIssues": 1
+}

@@ -1,0 +1,14 @@
+{
+  "outcome": "pass",
+  "format": "csv",
+  "shape": "categorical-counts",
+  "requiredRoles": {
+    "created_date": "time",
+    "complaint_type": "dimension",
+    "borough": "dimension",
+    "status": "status"
+  },
+  "chart": "bar",
+  "queryContains": ["complaint_type", "count"],
+  "maxIssues": 2
+}

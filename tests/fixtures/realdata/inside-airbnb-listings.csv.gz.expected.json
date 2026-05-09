@@ -1,0 +1,13 @@
+{
+  "outcome": "pass",
+  "format": "gzip-csv",
+  "shape": "geospatial",
+  "requiredRoles": {
+    "price": "money",
+    "latitude": "latitude",
+    "longitude": "longitude"
+  },
+  "chart": "scatter",
+  "queryContains": ["latitude", "longitude", "price"],
+  "maxIssues": 3
+}
