@@ -28,3 +28,11 @@ Scope: Browser BI Studio after Phase 2 substance commit `6670569`.
 | Start fresh            | Works fully           | Reset clears IndexedDB state.                                                       | Keep and test.                              |
 
 Before Phase 3: green 4, yellow 6, red 10.
+
+After Phase 3:
+
+- Green: sample, single CSV, single TSV, gzip CSV, Parquet, multi-file upload, drag/drop, paste text, clipboard read with fallback, mobile picker via file input, state import, restored autosave, start fresh, share URL restore.
+- Yellow: JSON and ZIP actionable errors, URL guidance, pasted HTML guidance through text fallback, Parquet diagnosis limitation.
+- Red/permanently out of scope: image/OCR, folder upload, server-proxied URL fetch.
+
+After Phase 3: green 14, yellow 5, red 3.

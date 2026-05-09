@@ -29,7 +29,7 @@ C4Container
   System_Boundary(browser, "User Browser") {
     Container(shell, "React shell", "TypeScript + Vite", "Dashboard UI")
     Container(worker, "Analytics modules", "DuckDB-WASM, Pyodide, Transformers.js, WebLLM", "Lazy-loaded compute")
-    ContainerDb(indexeddb, "IndexedDB", "Browser storage", "Saved datasets and dashboards")
+    ContainerDb(indexeddb, "IndexedDB", "Browser storage", "Saved dashboards, settings, and recent state")
   }
   System_Ext(pages, "GitHub Pages", "Static hosting from main/docs")
   System_Ext(repo, "GitHub API", "Public commit metadata")
@@ -44,5 +44,5 @@ C4Container
 
 - No runtime backend exists.
 - No authentication is required.
-- Local user files remain in browser memory or IndexedDB unless exported by the user.
+- Local user files remain in browser memory or IndexedDB unless exported by the user as CSV, JSON, or `.browser-bi.json`.
 - Optional model downloads happen from public model CDNs only after the user starts an AI action.

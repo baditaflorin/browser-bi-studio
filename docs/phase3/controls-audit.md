@@ -26,3 +26,12 @@ Audit date: 2026-05-09
 | Debug panel        | Works fully when `?debug=1` | Useful, but not discoverable.                                     | Add setting to toggle.              |
 
 Before Phase 3: green 14, yellow 6, red 0.
+
+After Phase 3:
+
+- Import now covers sample, file, state file, drag/drop, paste, clipboard, and batch status.
+- Output controls now cover CSV/JSON download, SQL/CSV copy, state export, share URL, and print.
+- Settings controls all change behavior: autosave persists state, debug toggles the debug panel, default chart affects query chart defaults, and preview rows controls rendered result rows.
+- URL control intentionally shows CORS guidance instead of pretending a static app can fetch arbitrary remote data.
+
+After Phase 3: green 27, yellow 2, red 0.

@@ -24,12 +24,20 @@ make smoke
 
 ![Browser BI Studio dashboard screenshot](https://baditaflorin.github.io/browser-bi-studio/screenshot.png)
 
-- Load the sample sales dataset or import local CSV / Parquet data.
+- Load sample data, upload or drag/drop CSV, TSV, gzip CSV, and Parquet files, batch-import files, or paste CSV/TSV text.
 - Query data in-browser with DuckDB-WASM.
 - Build dashboard tiles with Plotly charts and Observable Plot previews.
-- Persist local dashboard state in IndexedDB.
+- Autosave local dashboard state and settings in IndexedDB.
+- Export result CSV/JSON, copy SQL or CSV, print, share small dashboard URLs, and import/export portable `.browser-bi.json` state files.
 - Use lazy AI helpers for semantic search, Polars profiling through Pyodide, and optional in-browser WebLLM suggestions.
 - See the app version and current `main` commit on the live page.
+
+## Limitations
+
+- URL import is guidance-only because most public data URLs block direct browser reads without CORS; download the file or paste table text instead.
+- JSON and ZIP uploads receive actionable errors. Flatten JSON to a table or extract CSV files from ZIP archives first.
+- Rich Phase 2 diagnosis is strongest for CSV, TSV, and gzip CSV. Parquet loads through DuckDB, but detailed delimiter/header inference does not apply.
+- AI helpers may download public model assets on first use and can be slow on lower-memory devices.
 
 ## Architecture
 
@@ -39,7 +47,7 @@ C4Context
   Person(analyst, "Analyst", "Builds dashboards from local files")
   System_Boundary(pages, "GitHub Pages static site") {
     Container(app, "React/Vite app", "TypeScript", "Dashboard builder and local state")
-    ContainerDb(storage, "IndexedDB / OPFS", "Browser APIs", "Datasets, dashboards, preferences")
+    ContainerDb(storage, "IndexedDB", "Browser APIs", "Dashboards, settings, recent state")
     Container(wasm, "WASM modules", "DuckDB, Pyodide", "SQL and Python analytics")
   }
   System_Ext(github, "GitHub", "Public repo, Pages hosting, latest commit API")

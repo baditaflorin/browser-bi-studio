@@ -35,17 +35,17 @@ test('loads sample data, runs SQL, adds a chart, and saves locally', async ({ pa
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Output' }) })
   const csvDownloadPromise = page.waitForEvent('download')
-  await outputPanel.getByRole('button', { name: 'CSV', exact: true }).click()
+  await outputPanel.getByRole('button', { name: 'Download CSV' }).click()
   const csvDownload = await csvDownloadPromise
   expect(csvDownload.suggestedFilename()).toMatch(/sample-sales-\d{4}-\d{2}-\d{2}\.csv/)
 
   const stateDownloadPromise = page.waitForEvent('download')
-  await outputPanel.getByRole('button', { name: 'State', exact: true }).click()
+  await outputPanel.getByRole('button', { name: 'Export state' }).click()
   const stateDownload = await stateDownloadPromise
   const statePath = await stateDownload.path()
   expect(statePath).toBeTruthy()
 
-  await page.getByRole('button', { name: 'Reset', exact: true }).click()
+  await page.getByRole('button', { name: 'Clear state' }).click()
   await expect(page.getByText('Local dashboard cleared')).toBeVisible()
   await page
     .locator('label.file-button')

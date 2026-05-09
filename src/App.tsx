@@ -945,15 +945,15 @@ function App() {
             <div className="button-grid output-grid">
               <button type="button" onClick={downloadResultCsv} disabled={isBusy}>
                 <Download size={16} />
-                CSV
+                Download CSV
               </button>
               <button type="button" onClick={downloadResultJson} disabled={isBusy}>
                 <FileJson size={16} />
-                JSON
+                Download JSON
               </button>
               <button type="button" onClick={copyCurrentSql} disabled={isBusy}>
                 <Clipboard size={16} />
-                SQL
+                Copy SQL
               </button>
               <button type="button" onClick={copyResultCsv} disabled={isBusy}>
                 <Clipboard size={16} />
@@ -961,7 +961,7 @@ function App() {
               </button>
               <button type="button" onClick={exportStateFile} disabled={isBusy}>
                 <FileJson size={16} />
-                State
+                Export state
               </button>
               <button type="button" onClick={shareDashboard} disabled={isBusy}>
                 <Link2 size={16} />
@@ -1051,7 +1051,7 @@ function App() {
               </button>
               <button type="button" onClick={resetDashboard} disabled={isBusy}>
                 <RefreshCw size={16} />
-                Reset
+                Clear state
               </button>
             </div>
           </section>

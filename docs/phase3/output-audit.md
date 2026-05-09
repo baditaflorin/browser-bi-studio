@@ -20,3 +20,11 @@ Audit date: 2026-05-09
 | API/curl-ready output | Not built             | No backend API by design.                            | Provide SQL/CSV/JSON exports instead.        |
 
 Before Phase 3: green 3, yellow 0, red 11.
+
+After Phase 3:
+
+- Green: local save, clear local state, dashboard tiles, CSV export, JSON export, copy SQL, copy result CSV, state file export, state file import, share URL for small state, print view.
+- Yellow: API/automation-ready output through stable CSV/JSON exports rather than a backend API.
+- Red/permanently out of scope: screenshot export, embed code, runtime API.
+
+After Phase 3: green 11, yellow 1, red 3.

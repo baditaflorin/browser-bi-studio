@@ -17,3 +17,12 @@ Audit date: 2026-05-09
 | docs/postmortem.md  | Export/import is next improvement                                     | True gap              | Implement now.                                                                         |
 
 Before Phase 3: shipped fully 7, partial 3, not shipped 1.
+
+After Phase 3:
+
+- README and docs now claim CSV/TSV/gzip/Parquet upload, paste import, autosave, output export, state import/export, limitations, version, commit, repository, and PayPal support link.
+- OPFS was removed from the architecture claim.
+- docs/data.md now describes diagnosis schema v2 and state bundle version 1.
+- Export/import is no longer listed as open v1 debt; the v0.1 postmortem marks it completed in v0.2.0.
+
+After Phase 3: shipped fully 11, partial 2, not shipped 0.

@@ -32,7 +32,7 @@ Yes. The v1 feature set did not need a runtime backend. Local files, local persi
 
 ## Next Three Improvements
 
-1. Add dashboard export/import as a portable JSON bundle.
+1. Add dashboard export/import as a portable JSON bundle. Completed in v0.2.0 Phase 3.
 2. Add calculated fields and reusable query snippets.
 3. Add richer model selection for local LLM and embedding providers.
 

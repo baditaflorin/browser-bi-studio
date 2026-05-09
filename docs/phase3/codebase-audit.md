@@ -50,3 +50,14 @@ Audit date: 2026-05-09
 - No tests for URL hash restore.
 
 Before Phase 3 health gate: DRY violations 4, SOLID hotspots 3, dead-code candidates 3, TODO count 0, authored `any` count 0.
+
+## Measurements After Phase 3
+
+- Authored TODO/FIXME/XXX/HACK: 0.
+- Authored `any`: 0.
+- Dead exported `OperationState`, `InferenceExplanation`, and `loadCsvIntoDuckDb` removed.
+- Export/download/share/state serialization consolidated in `src/features/dashboard/exports.ts` and `src/features/dashboard/stateBundle.ts`.
+- Persistence boundary now validates concrete dashboard/settings schemas instead of a shallow `z.unknown()` cast.
+- ESLint ignores generated Pages bundles, reducing hook runtime and focusing checks on authored source.
+
+Remaining accepted hotspot: `src/App.tsx` is still large because Phase 3 intentionally avoided a broader state-management rewrite. ADR 0065 keeps that as accepted debt for a future module split.
