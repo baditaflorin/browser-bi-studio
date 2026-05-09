@@ -19,30 +19,33 @@ test('loads sample data, runs SQL, adds a chart, and saves locally', async ({ pa
   })
 
   await page.getByRole('button', { name: 'Run SQL' }).click()
-  await expect(page.getByRole('cell', { name: 'North' }).first()).toBeVisible({
+  await expect(page.getByRole('cell', { name: '18420' }).first()).toBeVisible({
     timeout: 30_000,
   })
 
   await page.getByRole('button', { name: 'Add tile' }).click()
-  await expect(page.getByRole('heading', { name: /revenue by region/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /revenue by date/i })).toBeVisible({
     timeout: 30_000,
   })
 
   await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByText('Saved locally')).toBeVisible()
+  await expect(page.getByText('Saved locally', { exact: true })).toBeVisible()
 
+  const outputPanel = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Output' }) })
   const csvDownloadPromise = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'CSV' }).click()
+  await outputPanel.getByRole('button', { name: 'CSV', exact: true }).click()
   const csvDownload = await csvDownloadPromise
   expect(csvDownload.suggestedFilename()).toMatch(/sample-sales-\d{4}-\d{2}-\d{2}\.csv/)
 
   const stateDownloadPromise = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'State' }).click()
+  await outputPanel.getByRole('button', { name: 'State', exact: true }).click()
   const stateDownload = await stateDownloadPromise
   const statePath = await stateDownload.path()
   expect(statePath).toBeTruthy()
 
-  await page.getByRole('button', { name: 'Reset' }).click()
+  await page.getByRole('button', { name: 'Reset', exact: true }).click()
   await expect(page.getByText('Local dashboard cleared')).toBeVisible()
   await page
     .locator('label.file-button')
