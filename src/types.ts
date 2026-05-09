@@ -41,12 +41,6 @@ export type DatasetIssue = {
   nextStep: string
 }
 
-export type InferenceExplanation = {
-  confidence: Confidence
-  reasons: string[]
-  anomalies: string[]
-}
-
 export type ColumnProfile = {
   name: string
   type: ColumnType
@@ -148,26 +142,6 @@ export type ActivityEvent = {
   label: string
   details?: string
 }
-
-export type OperationState =
-  | {
-      name:
-        | 'idle-empty'
-        | 'loaded-empty'
-        | 'loaded-some'
-        | 'loaded-many'
-        | 'loaded-too-many'
-        | 'charted'
-        | 'saved'
-    }
-  | {
-      name: 'importing' | 'querying' | 'saving'
-      label: string
-      startedAt: number
-      cancellable: boolean
-    }
-  | { name: 'error-recoverable' | 'error-fatal'; message: ActionableError }
-  | { name: 'cancelled'; label: string }
 
 export type ActionableError = {
   code: string

@@ -37,10 +37,6 @@ async function createDuckDb() {
   return db
 }
 
-export async function loadCsvIntoDuckDb(name: string, csv: string): Promise<LoadedDataset> {
-  return loadTextIntoDuckDb(name, csv, 'csv')
-}
-
 export async function loadTextIntoDuckDb(
   name: string,
   text: string,

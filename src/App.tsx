@@ -71,6 +71,12 @@ const initialState: DashboardState = {
   tiles: [],
 }
 
+const chartTypes: ChartType[] = ['bar', 'line', 'area', 'scatter', 'table']
+
+function isChartType(value: string): value is ChartType {
+  return chartTypes.some((type) => type === value)
+}
+
 type ChartDraft = {
   type: ChartType
   xField: string
@@ -1000,11 +1006,13 @@ function App() {
                 onChange={(event) =>
                   setSettings((current) => ({
                     ...current,
-                    defaultChart: event.target.value as ChartType,
+                    defaultChart: isChartType(event.target.value)
+                      ? event.target.value
+                      : current.defaultChart,
                   }))
                 }
               >
-                {(['bar', 'line', 'area', 'scatter', 'table'] satisfies ChartType[]).map((type) => (
+                {chartTypes.map((type) => (
                   <option key={type} value={type}>
                     {type}
                   </option>
@@ -1142,7 +1150,6 @@ function ChartControls({
   disabled: boolean
 }) {
   const fields = result?.columns ?? []
-  const chartTypes: ChartType[] = ['bar', 'line', 'area', 'scatter', 'table']
 
   return (
     <div className="chart-controls">

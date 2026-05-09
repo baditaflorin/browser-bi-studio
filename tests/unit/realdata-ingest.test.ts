@@ -94,9 +94,8 @@ describe('real-data import inference', () => {
       await prepareFileForImport(file)
     } catch (error) {
       expect(error).toBeInstanceOf(DataImportError)
-      expect((error as DataImportError).detail.nextStep.toLowerCase()).toContain(
-        expected.nextStepIncludes ?? '',
-      )
+      const detail = error instanceof DataImportError ? error.detail : undefined
+      expect(detail?.nextStep.toLowerCase()).toContain(expected.nextStepIncludes ?? '')
     }
   })
 })
