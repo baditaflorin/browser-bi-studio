@@ -125,6 +125,22 @@ export type DashboardState = {
   activity?: ActivityEvent[]
 }
 
+export type AppSettings = {
+  version: 1
+  autosave: boolean
+  showDebug: boolean
+  defaultChart: ChartType
+  maxPreviewRows: number
+}
+
+export type DashboardBundle = {
+  bundleVersion: 1
+  exportedAt: string
+  appVersion: string
+  dashboard: DashboardState
+  settings?: AppSettings
+}
+
 export type ActivityEvent = {
   id: string
   at: string
@@ -159,6 +175,13 @@ export type ActionableError = {
   what: string
   why: string
   nextStep: string
+}
+
+export type BatchImportStatus = {
+  id: string
+  name: string
+  status: 'queued' | 'running' | 'loaded' | 'failed'
+  message: string
 }
 
 export type VersionMetadata = {

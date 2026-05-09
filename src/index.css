@@ -248,6 +248,17 @@ th {
   padding: 14px;
 }
 
+.drop-panel {
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+.drop-panel.drag-active {
+  border-color: #0f766e;
+  background: #f0fdfa;
+}
+
 .grow {
   flex: 1;
 }
@@ -268,6 +279,10 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 10px;
+}
+
+.output-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .button-grid button,
@@ -292,6 +307,54 @@ th {
   height: 1px;
   opacity: 0;
   pointer-events: none;
+}
+
+.drop-hint {
+  margin-top: 9px;
+  color: #64736f;
+  font-size: 12px;
+}
+
+.paste-box {
+  min-height: 120px;
+}
+
+.url-guidance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.batch-status {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.batch-status p {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #30403d;
+  font-size: 12px;
+}
+
+.batch-status p[data-status='loaded'] {
+  background: #ecfdf5;
+}
+
+.batch-status p[data-status='failed'] {
+  background: #fff1f2;
+}
+
+.batch-status span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dataset-summary {
@@ -481,6 +544,29 @@ th {
   margin-top: auto;
 }
 
+.settings-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-panel label {
+  display: grid;
+  gap: 4px;
+  color: #64736f;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.toggle-row {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.toggle-row input {
+  width: 18px;
+  min-height: 18px;
+}
+
 .activity-log {
   display: grid;
   gap: 8px;
@@ -603,5 +689,34 @@ th {
 
   .chart-builder {
     position: static;
+  }
+}
+
+@media print {
+  .topbar,
+  .left-rail,
+  .right-rail,
+  .chart-builder,
+  .status-strip,
+  .toast {
+    display: none;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .app-shell,
+  .workspace,
+  .canvas {
+    display: block;
+    padding: 0;
+  }
+
+  .panel,
+  .tile {
+    break-inside: avoid;
+    border-color: #cbd5e1;
+    box-shadow: none;
   }
 }

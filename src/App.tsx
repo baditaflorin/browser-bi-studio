@@ -1,14 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import {
   BarChart3,
   Brain,
+  Clipboard,
   Database,
+  Download,
+  FileJson,
+  FileText,
   Heart,
+  Link2,
   Plus,
   Play,
+  Printer,
   RefreshCw,
   Save,
   Search,
+  Settings,
   Sparkles,
   Star,
   Upload,
@@ -21,13 +28,38 @@ import { askLocalLlm } from './features/ai/localLlm'
 import { profileWithPolars } from './features/ai/polarsProfile'
 import { deterministicSuggestions, semanticColumnSearch } from './features/ai/semanticSearch'
 import { defaultFieldSelection, createChartTile } from './features/dashboard/charting'
-import { clearDashboard, loadDashboard, saveDashboard } from './features/dashboard/persistence'
-import { actionableError } from './features/data/errors'
+import {
+  copyText,
+  downloadText,
+  makeDashboardBundle,
+  resultToCsv,
+  resultToJson,
+  safeExportName,
+  stableJson,
+} from './features/dashboard/exports'
+import {
+  clearDashboard,
+  defaultSettings,
+  loadDashboard,
+  loadSettings,
+  saveDashboard,
+  saveSettings,
+} from './features/dashboard/persistence'
+import {
+  createShareHash,
+  normalizeImportedSettings,
+  parseDashboardBundle,
+  parseShareHash,
+} from './features/dashboard/stateBundle'
+import { actionableError, DataImportError } from './features/data/errors'
 import { createSampleDataset, defaultQuery, sampleCsv } from './features/data/sampleData'
 import type {
   ActionableError,
   ActivityEvent,
+  AppSettings,
+  BatchImportStatus,
   ChartType,
+  DashboardBundle,
   DashboardState,
   LoadedDataset,
   QueryResult,
@@ -47,7 +79,10 @@ type ChartDraft = {
 
 function App() {
   const operationRef = useRef(0)
+  const saveTimerRef = useRef<number | undefined>(undefined)
   const [dashboard, setDashboard] = useState<DashboardState>(initialState)
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings)
+  const [hydrated, setHydrated] = useState(false)
   const [busy, setBusy] = useState<string>()
   const [toast, setToast] = useState<string>()
   const [error, setError] = useState<ActionableError>()
@@ -55,23 +90,85 @@ function App() {
   const [aiOutput, setAiOutput] = useState<string[]>([])
   const [profileOutput, setProfileOutput] = useState<string>()
   const [activity, setActivity] = useState<ActivityEvent[]>([])
+  const [pasteText, setPasteText] = useState('')
+  const [sourceUrl, setSourceUrl] = useState('')
+  const [batchStatuses, setBatchStatuses] = useState<BatchImportStatus[]>([])
+  const [dragActive, setDragActive] = useState(false)
   const [chartDraft, setChartDraft] = useState<ChartDraft>(
     defaultFieldSelection(initialState.lastResult),
   )
-  const debug = new URLSearchParams(window.location.search).get('debug') === '1'
+  const debug =
+    settings.showDebug || new URLSearchParams(window.location.search).get('debug') === '1'
 
   useEffect(() => {
-    loadDashboard()
-      .then((saved) => {
+    let cancelled = false
+
+    async function hydrate() {
+      try {
+        const shared = parseShareHash(window.location.hash)
+        const storedSettings = await loadSettings()
+
+        if (cancelled) {
+          return
+        }
+
+        if (shared) {
+          applyBundle(shared)
+          setToast('Shared dashboard restored')
+          return
+        }
+
+        setSettings(storedSettings)
+        const saved = await loadDashboard()
+
+        if (cancelled) {
+          return
+        }
+
         if (saved) {
           setDashboard(saved)
           setActivity(saved.activity ?? [])
           setChartDraft(defaultFieldSelection(saved.lastResult))
           setToast('Dashboard restored')
         }
-      })
-      .catch((reason: unknown) => setError(actionableError(reason)))
+      } catch (reason: unknown) {
+        setError(actionableError(reason))
+      } finally {
+        if (!cancelled) {
+          setHydrated(true)
+        }
+      }
+    }
+
+    void hydrate()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
+
+  useEffect(() => {
+    if (!hydrated) {
+      return
+    }
+
+    void saveSettings(settings).catch((reason: unknown) => setError(actionableError(reason)))
+  }, [hydrated, settings])
+
+  useEffect(() => {
+    if (!hydrated || !settings.autosave) {
+      return
+    }
+
+    window.clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = window.setTimeout(() => {
+      void saveDashboard({ ...dashboard, activity }).catch((reason: unknown) =>
+        setError(actionableError(reason)),
+      )
+    }, 700)
+
+    return () => window.clearTimeout(saveTimerRef.current)
+  }, [activity, dashboard, hydrated, settings.autosave])
 
   const currentRows = dashboard.lastResult?.rows ?? dashboard.dataset?.previewRows ?? []
   const columns = dashboard.lastResult?.columns ?? dashboard.dataset?.columns ?? []
@@ -96,22 +193,167 @@ function App() {
   }
 
   async function importFile(file: File) {
-    await withBusy(`Diagnosing ${file.name}`, async (isCurrent) => {
-      const { executeSql, loadFileIntoDuckDb, loadParquetIntoDuckDb } =
-        await import('./features/data/duckdb')
-      const dataset = file.name.toLowerCase().endsWith('.parquet')
-        ? await loadParquetIntoDuckDb(file)
-        : await loadFileIntoDuckDb(file)
-      const sql =
-        dataset.diagnosis?.recommendedAnalysis.sql ?? 'SELECT * FROM current_data LIMIT 100'
-      const result = await executeSql(sql)
+    await importFiles([file])
+  }
+
+  async function importFiles(files: File[]) {
+    if (!files.length) {
+      return
+    }
+
+    setBatchStatuses(
+      files.map((file, index) => ({
+        id: `${file.name}-${index}`,
+        name: file.name,
+        status: 'queued',
+        message: 'Waiting',
+      })),
+    )
+
+    await withBusy(
+      `Importing ${files.length} file${files.length === 1 ? '' : 's'}`,
+      async (isCurrent) => {
+        let successes = 0
+        let lastError: ActionableError | undefined
+
+        for (const [index, file] of files.entries()) {
+          setBatchStatus(index, { status: 'running', message: 'Reading' })
+
+          try {
+            if (isStateFile(file)) {
+              await importStateText(await file.text(), file.name)
+              setBatchStatus(index, { status: 'loaded', message: 'State restored' })
+              successes += 1
+              continue
+            }
+
+            const dataset = await loadDatasetFromFile(file)
+            const result = await runRecommendedQuery(dataset)
+
+            if (!isCurrent()) {
+              return
+            }
+
+            commitDataset(dataset, result.sql, result)
+            record('import', `Imported ${file.name}`, dataset.diagnosis?.shape)
+            setBatchStatus(index, {
+              status: 'loaded',
+              message: `${dataset.rowCount.toLocaleString()} rows`,
+            })
+            successes += 1
+          } catch (reason: unknown) {
+            const detail = actionableError(reason)
+            lastError = detail
+            setBatchStatus(index, { status: 'failed', message: detail.what })
+
+            if (files.length === 1) {
+              throw new DataImportError(detail)
+            }
+          }
+        }
+
+        if (successes === 0 && lastError) {
+          throw new DataImportError(lastError)
+        }
+
+        if (isCurrent()) {
+          setToast(`${successes} of ${files.length} imports loaded`)
+        }
+      },
+    )
+  }
+
+  async function importPastedText() {
+    const text = pasteText.trim()
+
+    if (!text) {
+      setError({
+        code: 'empty_paste',
+        recoverable: true,
+        what: 'There is no pasted table yet.',
+        why: 'Paste import needs CSV or TSV text.',
+        nextStep: 'Paste rows from a spreadsheet or CSV export, then import again.',
+      })
+      return
+    }
+
+    await importText('pasted-table.csv', text)
+  }
+
+  async function importClipboardText() {
+    if (!navigator.clipboard?.readText) {
+      setError({
+        code: 'clipboard_unavailable',
+        recoverable: true,
+        what: 'Clipboard read is not available.',
+        why: 'This browser or page permission blocks direct clipboard reads.',
+        nextStep: 'Paste the table into the text box instead.',
+      })
+      return
+    }
+
+    const text = await navigator.clipboard.readText()
+    setPasteText(text)
+    await importText('clipboard-table.csv', text)
+  }
+
+  async function importText(name: string, text: string) {
+    await withBusy(`Diagnosing ${name}`, async (isCurrent) => {
+      const { loadTextIntoDuckDb } = await import('./features/data/duckdb')
+      const dataset = await loadTextIntoDuckDb(name, text, 'csv')
+      const result = await runRecommendedQuery(dataset)
+
       if (!isCurrent()) {
         return
       }
-      commitDataset(dataset, sql, result)
-      record('import', `Imported ${file.name}`, dataset.diagnosis?.shape)
-      setToast('Dataset diagnosed and first query ran')
+
+      commitDataset(dataset, result.sql, result)
+      record('import', `Imported ${name}`, dataset.diagnosis?.shape)
+      setToast('Pasted data diagnosed and first query ran')
     })
+  }
+
+  async function loadDatasetFromFile(file: File) {
+    const { loadFileIntoDuckDb, loadParquetIntoDuckDb } = await import('./features/data/duckdb')
+    return file.name.toLowerCase().endsWith('.parquet')
+      ? loadParquetIntoDuckDb(file)
+      : loadFileIntoDuckDb(file)
+  }
+
+  async function runRecommendedQuery(dataset: LoadedDataset) {
+    const { executeSql } = await import('./features/data/duckdb')
+    const sql = dataset.diagnosis?.recommendedAnalysis.sql ?? 'SELECT * FROM current_data LIMIT 100'
+    return executeSql(sql)
+  }
+
+  async function importStateText(text: string, name: string) {
+    const bundle = parseDashboardBundle(text)
+    applyBundle(bundle)
+    record('import', `Imported ${name}`, 'state bundle')
+  }
+
+  async function importStateFile(file: File) {
+    await withBusy(`Restoring ${file.name}`, async () => {
+      await importStateText(await file.text(), file.name)
+      setToast('Dashboard state imported')
+    })
+  }
+
+  function applyBundle(bundle: DashboardBundle) {
+    setSettings(normalizeImportedSettings(bundle.settings))
+    setDashboard(bundle.dashboard)
+    setActivity(bundle.dashboard.activity ?? [])
+    setChartDraft(defaultFieldSelection(bundle.dashboard.lastResult))
+  }
+
+  function setBatchStatus(index: number, patch: Pick<BatchImportStatus, 'status' | 'message'>) {
+    setBatchStatuses((current) =>
+      current.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)),
+    )
+  }
+
+  function isStateFile(file: File) {
+    return file.name.toLowerCase().endsWith('.browser-bi.json')
   }
 
   function commitDataset(dataset: LoadedDataset, queryText: string, result: QueryResult) {
@@ -152,7 +394,7 @@ function App() {
         return
       }
       setDashboard((current) => ({ ...current, lastResult: result }))
-      setChartDraft(defaultFieldSelection(result))
+      setChartDraft({ ...defaultFieldSelection(result), type: settings.defaultChart })
       record('query', 'SQL query completed', `${result.rowCount} rows in ${result.elapsedMs}ms`)
       setToast(`${result.rowCount} rows in ${result.elapsedMs}ms`)
     })
@@ -181,6 +423,118 @@ function App() {
     setActivity([])
     setBusy(undefined)
     setToast('Local dashboard cleared')
+  }
+
+  function currentBundle() {
+    return makeDashboardBundle({ ...dashboard, activity }, settings, __APP_VERSION__)
+  }
+
+  function requireResult() {
+    if (!dashboard.lastResult) {
+      throw new DataImportError({
+        code: 'missing_result',
+        recoverable: true,
+        what: 'There is no result to export.',
+        why: 'Exports use the current SQL result.',
+        nextStep: 'Import data or run SQL first.',
+      })
+    }
+
+    return dashboard.lastResult
+  }
+
+  async function downloadResultCsv() {
+    try {
+      const result = requireResult()
+      downloadText(
+        safeExportName(dashboard.dataset?.name ?? 'query-result', 'csv'),
+        resultToCsv(result),
+        'text/csv;charset=utf-8',
+      )
+      record('save', 'Exported CSV', `${result.rowCount} rows`)
+      setToast('CSV exported')
+    } catch (reason: unknown) {
+      setError(actionableError(reason))
+    }
+  }
+
+  async function downloadResultJson() {
+    try {
+      const result = requireResult()
+      downloadText(
+        safeExportName(dashboard.dataset?.name ?? 'query-result', 'json'),
+        resultToJson(result, dashboard),
+        'application/json;charset=utf-8',
+      )
+      record('save', 'Exported JSON', `${result.rowCount} rows`)
+      setToast('JSON exported')
+    } catch (reason: unknown) {
+      setError(actionableError(reason))
+    }
+  }
+
+  async function copyCurrentSql() {
+    try {
+      await copyText(dashboard.queryText)
+      record('save', 'Copied SQL')
+      setToast('SQL copied')
+    } catch (reason: unknown) {
+      setError(actionableError(reason))
+    }
+  }
+
+  async function copyResultCsv() {
+    try {
+      await copyText(resultToCsv(requireResult()))
+      record('save', 'Copied result CSV')
+      setToast('CSV copied')
+    } catch (reason: unknown) {
+      setError(actionableError(reason))
+    }
+  }
+
+  function exportStateFile() {
+    try {
+      downloadText(
+        safeExportName(dashboard.dataset?.name ?? 'dashboard', 'browser-bi.json'),
+        stableJson(currentBundle()),
+        'application/json;charset=utf-8',
+      )
+      record('save', 'Exported dashboard state')
+      setToast('State file exported')
+    } catch (reason: unknown) {
+      setError(actionableError(reason))
+    }
+  }
+
+  async function shareDashboard() {
+    try {
+      const hash = createShareHash(currentBundle())
+      const url = `${window.location.origin}${window.location.pathname}#${hash}`
+      await copyText(url)
+      window.history.replaceState(null, '', `#${hash}`)
+      record('save', 'Copied share URL')
+      setToast('Share URL copied')
+    } catch (reason: unknown) {
+      setError(actionableError(reason))
+    }
+  }
+
+  function printDashboard() {
+    record('save', 'Opened print view')
+    window.print()
+  }
+
+  function showUrlGuidance() {
+    setError({
+      code: 'url_import_out_of_scope',
+      recoverable: true,
+      what: 'URL import is browser-limited.',
+      why: sourceUrl
+        ? 'Most data URLs block direct browser reads unless they explicitly allow CORS.'
+        : 'No URL was entered.',
+      nextStep: 'Download the CSV/TSV file, or paste the rendered table text into the paste box.',
+    })
   }
 
   function addTile() {
@@ -325,6 +679,21 @@ function App() {
     )
   }
 
+  function handleDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault()
+    setDragActive(false)
+    void importFiles(Array.from(event.dataTransfer.files))
+  }
+
+  function handleDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault()
+    setDragActive(true)
+  }
+
+  function handleDragLeave() {
+    setDragActive(false)
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -362,7 +731,12 @@ function App() {
 
       <main className="workspace">
         <aside className="left-rail">
-          <section className="panel">
+          <section
+            className={`panel drop-panel ${dragActive ? 'drag-active' : ''}`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+          >
             <div className="panel-title">
               <h2>Data</h2>
               <Database size={17} />
@@ -377,19 +751,78 @@ function App() {
                 Import
                 <input
                   type="file"
-                  accept=".csv,.tsv,.csv.gz,.gz,.parquet,.json,.zip,text/csv,text/tab-separated-values"
+                  multiple
+                  accept=".csv,.tsv,.csv.gz,.gz,.parquet,.json,.zip,.browser-bi.json,text/csv,text/tab-separated-values,application/json"
+                  disabled={isBusy}
+                  onChange={(event) => {
+                    const files = Array.from(event.target.files ?? [])
+                    if (files.length === 1) {
+                      void importFile(files[0])
+                    } else if (files.length > 1) {
+                      void importFiles(files)
+                    }
+                    event.currentTarget.value = ''
+                  }}
+                />
+              </label>
+              <label className="file-button">
+                <FileJson size={16} />
+                State
+                <input
+                  type="file"
+                  accept=".browser-bi.json,application/json"
                   disabled={isBusy}
                   onChange={(event) => {
                     const file = event.target.files?.[0]
                     if (file) {
-                      void importFile(file)
+                      void importStateFile(file)
                     }
                     event.currentTarget.value = ''
                   }}
                 />
               </label>
             </div>
+            <p className="drop-hint">Drop CSV, TSV, gzip CSV, Parquet, or state files here.</p>
+            <BatchStatusList statuses={batchStatuses} />
             <DatasetSummary dataset={dashboard.dataset} />
+          </section>
+
+          <section className="panel">
+            <div className="panel-title">
+              <h2>Paste</h2>
+              <Clipboard size={17} />
+            </div>
+            <textarea
+              className="paste-box"
+              value={pasteText}
+              onChange={(event) => setPasteText(event.target.value)}
+              placeholder="Paste CSV or TSV rows"
+              aria-label="Paste CSV or TSV rows"
+              disabled={isBusy}
+            />
+            <div className="button-row">
+              <button type="button" onClick={importPastedText} disabled={isBusy}>
+                <FileText size={16} />
+                Import text
+              </button>
+              <button type="button" onClick={importClipboardText} disabled={isBusy}>
+                <Clipboard size={16} />
+                Clipboard
+              </button>
+            </div>
+            <div className="url-guidance">
+              <input
+                value={sourceUrl}
+                onChange={(event) => setSourceUrl(event.target.value)}
+                placeholder="https://example.com/data.csv"
+                aria-label="Data URL"
+                disabled={isBusy}
+              />
+              <button type="button" onClick={showUrlGuidance} disabled={isBusy}>
+                <Link2 size={16} />
+                URL
+              </button>
+            </div>
           </section>
 
           <section className="panel grow">
@@ -455,7 +888,11 @@ function App() {
                 {dashboard.lastResult?.elapsedMs ? `${dashboard.lastResult.elapsedMs}ms` : ''}
               </span>
             </div>
-            <ResultTable result={dashboard.lastResult} dataset={dashboard.dataset} />
+            <ResultTable
+              result={dashboard.lastResult}
+              dataset={dashboard.dataset}
+              maxRows={settings.maxPreviewRows}
+            />
           </section>
 
           <section className="dashboard-grid" aria-label="Dashboard tiles">
@@ -492,6 +929,104 @@ function App() {
               </button>
             </div>
             <AiOutput lines={aiOutput} profile={profileOutput} />
+          </section>
+
+          <section className="panel">
+            <div className="panel-title">
+              <h2>Output</h2>
+              <Download size={17} />
+            </div>
+            <div className="button-grid output-grid">
+              <button type="button" onClick={downloadResultCsv} disabled={isBusy}>
+                <Download size={16} />
+                CSV
+              </button>
+              <button type="button" onClick={downloadResultJson} disabled={isBusy}>
+                <FileJson size={16} />
+                JSON
+              </button>
+              <button type="button" onClick={copyCurrentSql} disabled={isBusy}>
+                <Clipboard size={16} />
+                SQL
+              </button>
+              <button type="button" onClick={copyResultCsv} disabled={isBusy}>
+                <Clipboard size={16} />
+                Copy CSV
+              </button>
+              <button type="button" onClick={exportStateFile} disabled={isBusy}>
+                <FileJson size={16} />
+                State
+              </button>
+              <button type="button" onClick={shareDashboard} disabled={isBusy}>
+                <Link2 size={16} />
+                Share
+              </button>
+              <button type="button" onClick={printDashboard} disabled={isBusy}>
+                <Printer size={16} />
+                Print
+              </button>
+            </div>
+          </section>
+
+          <section className="panel settings-panel">
+            <div className="panel-title">
+              <h2>Settings</h2>
+              <Settings size={17} />
+            </div>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
+                checked={settings.autosave}
+                onChange={(event) =>
+                  setSettings((current) => ({ ...current, autosave: event.target.checked }))
+                }
+              />
+              Autosave
+            </label>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
+                checked={settings.showDebug}
+                onChange={(event) =>
+                  setSettings((current) => ({ ...current, showDebug: event.target.checked }))
+                }
+              />
+              Debug
+            </label>
+            <label>
+              Default chart
+              <select
+                value={settings.defaultChart}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    defaultChart: event.target.value as ChartType,
+                  }))
+                }
+              >
+                {(['bar', 'line', 'area', 'scatter', 'table'] satisfies ChartType[]).map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Preview rows
+              <input
+                type="number"
+                min={25}
+                max={500}
+                step={25}
+                value={settings.maxPreviewRows}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    maxPreviewRows: Number(event.target.value),
+                  }))
+                }
+              />
+            </label>
           </section>
 
           <section className="panel save-panel">
@@ -576,6 +1111,23 @@ function DatasetSummary({ dataset }: { dataset?: LoadedDataset }) {
   )
 }
 
+function BatchStatusList({ statuses }: { statuses: BatchImportStatus[] }) {
+  if (!statuses.length) {
+    return null
+  }
+
+  return (
+    <div className="batch-status" aria-live="polite">
+      {statuses.map((item) => (
+        <p key={item.id} data-status={item.status}>
+          <span>{item.name}</span>
+          <strong>{item.message}</strong>
+        </p>
+      ))}
+    </div>
+  )
+}
+
 function ChartControls({
   draft,
   result,
@@ -644,7 +1196,15 @@ function ChartControls({
   )
 }
 
-function ResultTable({ result, dataset }: { result?: QueryResult; dataset?: LoadedDataset }) {
+function ResultTable({
+  result,
+  dataset,
+  maxRows,
+}: {
+  result?: QueryResult
+  dataset?: LoadedDataset
+  maxRows: number
+}) {
   const rows = result?.rows ?? dataset?.previewRows ?? []
   const columns = Object.keys(rows[0] ?? {}).slice(0, 10)
 
@@ -663,7 +1223,7 @@ function ResultTable({ result, dataset }: { result?: QueryResult; dataset?: Load
           </tr>
         </thead>
         <tbody>
-          {rows.slice(0, 50).map((row, index) => (
+          {rows.slice(0, maxRows).map((row, index) => (
             <tr key={`${index}-${columns.join('-')}`}>
               {columns.map((column) => (
                 <td key={column}>{String(row[column] ?? '')}</td>
