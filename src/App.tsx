@@ -27,7 +27,12 @@ import { VersionBadge } from './components/VersionBadge'
 import { askLocalLlm } from './features/ai/localLlm'
 import { profileWithPolars } from './features/ai/polarsProfile'
 import { deterministicSuggestions, semanticColumnSearch } from './features/ai/semanticSearch'
-import { defaultFieldSelection, createChartTile } from './features/dashboard/charting'
+import {
+  AGGREGATION_LABELS,
+  CHART_AGGREGATIONS,
+  createChartTile,
+  defaultFieldSelection,
+} from './features/dashboard/charting'
 import {
   copyText,
   downloadText,
@@ -58,6 +63,7 @@ import type {
   ActivityEvent,
   AppSettings,
   BatchImportStatus,
+  ChartAggregation,
   ChartType,
   DashboardBundle,
   DashboardState,
@@ -81,6 +87,7 @@ type ChartDraft = {
   type: ChartType
   xField: string
   yField: string
+  aggregation: ChartAggregation
 }
 
 function App() {
@@ -376,6 +383,7 @@ function App() {
             type: recommendation.chartType,
             xField: recommendation.xField,
             yField: recommendation.yField,
+            aggregation: recommendation.yField ? 'sum' : 'count',
           }
         : defaultFieldSelection(result),
     )
@@ -560,6 +568,7 @@ function App() {
       chartDraft.type,
       chartDraft.xField,
       chartDraft.yField,
+      chartDraft.aggregation,
     )
     setDashboard((current) => ({
       ...current,
@@ -1184,13 +1193,48 @@ function ChartControls({
         Y
         <select
           value={draft.yField}
-          onChange={(event) => onChange({ ...draft, yField: event.target.value })}
+          onChange={(event) => {
+            const nextY = event.target.value
+            onChange({
+              ...draft,
+              yField: nextY,
+              // Auto-switch aggregation when toggling between "count rows" and
+              // "sum a measure" so the user doesn't end up with a "count of
+              // revenue" mismatch that's silently confusing.
+              aggregation: nextY
+                ? draft.aggregation === 'count'
+                  ? 'sum'
+                  : draft.aggregation
+                : 'count',
+            })
+          }}
           disabled={disabled}
         >
           <option value="">count</option>
           {fields.map((field) => (
             <option key={field.name} value={field.name}>
               {field.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Agg
+        <select
+          value={draft.aggregation}
+          onChange={(event) =>
+            onChange({ ...draft, aggregation: event.target.value as ChartAggregation })
+          }
+          disabled={disabled || draft.type === 'scatter' || draft.type === 'table'}
+          title={
+            draft.type === 'scatter'
+              ? 'Scatter plots show every row — aggregation does not apply'
+              : 'How to combine multiple rows that share the same X value'
+          }
+        >
+          {CHART_AGGREGATIONS.map((agg) => (
+            <option key={agg} value={agg} disabled={agg === 'count' && Boolean(draft.yField)}>
+              {AGGREGATION_LABELS[agg].toLowerCase()}
             </option>
           ))}
         </select>

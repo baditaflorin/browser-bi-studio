@@ -99,12 +99,25 @@ export type QueryResult = {
 
 export type ChartType = 'bar' | 'line' | 'area' | 'scatter' | 'table'
 
+/**
+ * How to combine multiple y-values that share the same x-value. Defaults to
+ * sum for measure fields (matches the BI tools the README pitches against —
+ * Tableau / Looker / Metabase / Plot all sum by default for grouped bars).
+ */
+export type ChartAggregation = 'sum' | 'avg' | 'count' | 'min' | 'max'
+
 export type ChartTile = {
   id: string
   title: string
   type: ChartType
   xField: string
   yField: string
+  /**
+   * Optional. Missing on tiles created before the aggregation field shipped —
+   * `chartRows` infers `sum` (when yField is set) or `count` (when it isn't),
+   * matching the previous best-effort behaviour but applied consistently.
+   */
+  aggregation?: ChartAggregation
   rows: DataRow[]
   createdAt: string
 }

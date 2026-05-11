@@ -1,5 +1,47 @@
-import type { ChartTile, ChartType, ColumnProfile, DataRow, QueryResult } from '../../types'
+import type {
+  ChartAggregation,
+  ChartTile,
+  ChartType,
+  ColumnProfile,
+  DataRow,
+  QueryResult,
+} from '../../types'
 import { dimensionColumns, numericColumns } from '../data/schema'
+
+export const CHART_AGGREGATIONS: readonly ChartAggregation[] = [
+  'sum',
+  'avg',
+  'count',
+  'min',
+  'max',
+] as const
+
+/**
+ * Per-aggregation pretty labels used in axis titles and the picker.
+ */
+export const AGGREGATION_LABELS: Record<ChartAggregation, string> = {
+  sum: 'Sum',
+  avg: 'Average',
+  count: 'Count',
+  min: 'Min',
+  max: 'Max',
+}
+
+function reduceAggregation(values: number[], agg: ChartAggregation): number {
+  if (values.length === 0) return 0
+  switch (agg) {
+    case 'sum':
+      return values.reduce((acc, v) => acc + v, 0)
+    case 'avg':
+      return values.reduce((acc, v) => acc + v, 0) / values.length
+    case 'count':
+      return values.length
+    case 'min':
+      return values.reduce((acc, v) => (v < acc ? v : acc), values[0]!)
+    case 'max':
+      return values.reduce((acc, v) => (v > acc ? v : acc), values[0]!)
+  }
+}
 
 export function recommendChart(columns: ColumnProfile[]): ChartType {
   const measures = numericColumns(columns)
@@ -36,8 +78,10 @@ export function createChartTile(
   type: ChartType,
   xField: string,
   yField: string,
+  aggregation: ChartAggregation = yField ? 'sum' : 'count',
 ): ChartTile {
-  const fallbackTitle = type === 'table' ? 'Result table' : `${yField || 'Count'} by ${xField}`
+  const yLabel = yField ? `${AGGREGATION_LABELS[aggregation]} ${yField}` : 'Count'
+  const fallbackTitle = type === 'table' ? 'Result table' : `${yLabel} by ${xField}`
 
   return {
     id: crypto.randomUUID(),
@@ -45,30 +89,68 @@ export function createChartTile(
     type,
     xField,
     yField,
+    aggregation,
     rows: result.rows,
     createdAt: new Date().toISOString(),
   }
 }
 
-export function chartRows(tile: Pick<ChartTile, 'rows' | 'xField' | 'yField'>): DataRow[] {
+/**
+ * Collapse the raw query rows into the points the chart actually plots.
+ *
+ * The original implementation auto-counted only when yField was empty; if
+ * yField was set, it returned the raw rows. That meant a grouped query
+ * with repeating x-values (e.g. `SELECT category, revenue FROM orders`)
+ * rendered as a forest of overlapping bars at the same x position, one per
+ * row, with no visible aggregation. Real BI tools sum (or avg/min/max)
+ * across duplicates. We do that here, defaulting to sum when yField is set
+ * and count when it isn't, and surface the aggregation alongside the data
+ * so the legend/axis can label it honestly.
+ *
+ * Scatter plots intentionally skip aggregation — each row is a distinct
+ * point, and collapsing duplicates would hide cluster density. Tables and
+ * raw exports are unaffected; only chartable types pass through here.
+ */
+export function chartRows(
+  tile: Pick<ChartTile, 'rows' | 'xField' | 'yField' | 'type' | 'aggregation'>,
+): DataRow[] {
   if (!tile.xField) {
     return tile.rows
   }
 
-  if (tile.yField) {
+  // Scatter visualises distribution, not summary stats — keep every point.
+  if (tile.type === 'scatter') {
     return tile.rows
   }
 
-  const counts = new Map<string, number>()
+  const aggregation: ChartAggregation = tile.aggregation ?? (tile.yField ? 'sum' : 'count')
+  const yKey = tile.yField || 'count'
 
+  // Group rows by their x value, then reduce each group's y values.
+  const groups = new Map<string, { key: unknown; values: number[] }>()
   for (const row of tile.rows) {
-    const key = String(row[tile.xField] ?? 'empty')
-    counts.set(key, (counts.get(key) ?? 0) + 1)
+    const rawKey = row[tile.xField] ?? 'empty'
+    const stringKey = String(rawKey)
+    let bucket = groups.get(stringKey)
+    if (!bucket) {
+      bucket = { key: rawKey, values: [] }
+      groups.set(stringKey, bucket)
+    }
+    if (tile.yField) {
+      const raw = row[tile.yField]
+      const numeric = typeof raw === 'number' ? raw : Number(raw)
+      if (Number.isFinite(numeric)) {
+        bucket.values.push(numeric)
+      }
+    } else {
+      // No yField: each row contributes 1 toward the count.
+      bucket.values.push(1)
+    }
   }
 
-  return Array.from(counts.entries()).map(([key, value]) => ({
-    [tile.xField]: key,
-    count: value,
+  return Array.from(groups.values()).map((group) => ({
+    [tile.xField]: group.key as DataRow[string],
+    [yKey]: reduceAggregation(group.values, aggregation),
   }))
 }
 
@@ -94,5 +176,6 @@ export function defaultFieldSelection(result?: QueryResult) {
     xField: firstDimension,
     yField: firstMeasure,
     type: recommendChart(columns),
+    aggregation: firstMeasure ? ('sum' as ChartAggregation) : ('count' as ChartAggregation),
   }
 }
